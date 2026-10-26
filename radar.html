@@ -255,6 +255,10 @@ main{flex:1;min-height:0;display:flex;flex-direction:column;gap:12px;padding:12p
 .tbl-r .vl{position:relative;font:700 13.5px/1 var(--num);letter-spacing:.01em;text-align:right}
 .tbl-r .vl small{font-weight:500;font-size:11px;color:var(--faint);margin-left:4px}
 .tbl .em{padding:14px;color:var(--faint);font-size:13px}
+.spark{flex:none;display:flex;align-items:center;gap:8px;height:40px;padding:6px 14px;border-bottom:1px solid var(--soft)}
+.spark.off{display:none}
+.spark svg{flex:1;min-width:0;height:26px;display:block;overflow:visible}
+.spark .dl{font:600 11.5px/1 var(--num);color:var(--muted);white-space:nowrap}
 .legend.off{display:none}
 #drawer{position:fixed;top:0;right:0;bottom:0;width:420px;z-index:50;background:var(--card);border-left:1px solid var(--border);box-shadow:-16px 0 40px rgba(0,0,0,.35);display:flex;flex-direction:column;transform:translateX(105%);transition:transform .22s cubic-bezier(.3,.7,.2,1)}
 #drawer.on{transform:none}
@@ -401,6 +405,7 @@ main{gap:10px;padding:10px 16px 14px}
   <div class="sp"></div>
   <div class="seg" id="lang"><button data-l="ru">RU</button><button data-l="en">EN</button></div>
   <button class="ghost" id="theme"><i class="fa-solid fa-moon"></i></button>
+  <button class="ghost" id="share" type="button"><i class="fa-solid fa-share-nodes"></i></button>
   <button class="ghost" id="custom" type="button"><i class="fa-solid fa-sliders"></i><span class="gh" id="customText"></span></button>
   <a class="ghost" href="https://github.com/Sledak661/umb-radarweb" target="_blank" rel="noopener"><i class="fa-brands fa-github"></i><span class="gh">GitHub</span></a>
 </div></header>
@@ -410,7 +415,7 @@ main{gap:10px;padding:10px 16px 14px}
   <div hidden id="panels">
 <section class="card" id="scoreCard"><div class="sb" id="score"></div></section>
 <section class="card" id="objCard"><div class="card-h"><h2><i class="fa-solid fa-crosshairs"></i><span id="hObj"></span></h2></div><div class="objs" id="objs"></div></section>
-<section class="card" id="econCard"><div class="card-h"><h2><i class="fa-solid fa-sack-dollar"></i><span id="hEcon"></span></h2></div><div class="tbl" id="econ"></div></section>
+<section class="card" id="econCard"><div class="card-h"><h2><i class="fa-solid fa-sack-dollar"></i><span id="hEcon"></span></h2></div><div class="spark off" id="spark"></div><div class="tbl" id="econ"></div></section>
 <section class="card" id="leadCard"><div class="card-h"><h2><i class="fa-solid fa-ranking-star"></i><span id="hLead"></span></h2></div><div class="tbl" id="lead"></div></section>
 <section class="card" id="mapCard">
 <div id="stage"><button class="gear" id="gear" type="button"><i class="fa-solid fa-gear"></i></button><div class="opts" id="opts"></div><canvas id="map"></canvas><div id="marks"></div><div id="empty"><div><i class="fa-solid fa-satellite-dish"></i><span id="emptyText"></span></div></div></div>
@@ -442,14 +447,19 @@ const ALL = {
     popcon: 'Events on top of the game', noWindow: 'Window did not open: ', paused: 'paused', theme: 'Theme', noEvents: 'No events yet',
     objectives: 'Objectives', events: 'Events', allies: 'allies', enemies: 'enemies', radiant: 'Radiant', dire: 'Dire', kills: 'kills', nwTotal: 'NW',
     dead: 'dead', deadIn: 'dead · {n} s', visible: 'visible', maphack: 'fog · {n} s', lastSeen: 'last seen · {n} s',
+    drinks: 'Drinks',
     tp: 'teleport · {n} s', buyback: 'Buyback', ready: 'ready', sec: '{n} s', gold: 'Gold', nw: 'NW', kda: 'KDA', lhdn: 'LH/DN',
     roshan: 'Roshan', tormentor: 'Tormentor', noData: 'no data', bossDead: 'dead', bossSeen: 'alive', bossHit: 'under attack',
     glyph: 'Glyph', scan: 'Scan', camps: 'Camps with creeps',
     econTitle: 'Net worth', leadTitle: 'Creep score', tblPlayer: 'Player', econEmpty: 'No data yet', leadEmpty: 'No data yet',
-    layers: { heroes: 'Heroes', bars: 'HP and mana under heroes', fog: 'Heroes in fog', creeps: 'Lane creeps', waves: 'Creep waves in fog', jungle: 'Jungle and camps', wards: 'Wards and vision', buildings: 'Buildings', events: 'Map events', couriers: 'Couriers', runes: 'Runes', labels: 'Fog age labels' },
+    share: 'Share', shareCopied: 'Link copied',
+    roshWindow: 'respawn {a}–{b}', aegisLeft: 'aegis ~{t}', spawnIn: 'in {t}',
+    alertRoshDead: 'Roshan killed', alertRoshUp: 'Roshan respawned', alertRoshHit: 'Roshan under attack',
+    alertSmokeText: 'Enemy smoke', alertMissingText: 'All enemies are missing', alertGlyphText: 'Enemy glyph is ready',
+    layers: { heroes: 'Heroes', bars: 'HP and mana under heroes', fog: 'Heroes in fog', creeps: 'Lane creeps', waves: 'Creep waves in fog', jungle: 'Jungle and camps', wards: 'Wards and vision', buildings: 'Buildings', events: 'Map events', couriers: 'Couriers', runes: 'Runes', labels: 'Fog age labels', trails: 'Movement trails', heat: 'Enemy heatmap' },
     heroesTitle: 'Heroes', teamShow: 'Show heroes', compactView: 'Compact view', viewMode: 'View', viewAll: 'Both teams', viewAllies: 'Allies only', viewEnemies: 'Enemies only', noHeroes: 'No heroes yet',
     show: 'Show on the map', windows: 'On top of the game', day: 'Day', night: 'Night', nsNight: 'Night Stalker', est: 'counted since the radar started',
-    stock: 'Shop stock', untilNight: 'night in {t}', untilDay: 'day in {t}', scanCharges: 'Scan charges', dmg: 'Hero damage', heal: 'Healing', wardsPlaced: 'Wards', stacks: 'Stacks', xp: 'XP',
+    stock: 'Shop stock', untilNight: 'night in {t}', untilDay: 'day in {t}', scanCharges: 'Scan charges', dmg: 'Hero damage', heal: 'Healing', cycleLabel: 'Day / night', wardsPlaced: 'Wards', stacks: 'Stacks', xp: 'XP',
     attrDmg: 'Damage', attrArm: 'Armor', attrMs: 'Move speed', attrAs: 'Attacks per second', ult: 'Ultimate',
     legend: ['visible', 'in fog', 'last seen', 'wave in fog'],
     zone: { mid: 'mid', top: 'top', bot: 'bot' }, side: { r: 'Radiant side', d: 'Dire side', c: 'middle' },
@@ -476,14 +486,19 @@ const ALL = {
     popcon: 'События поверх игры', noWindow: 'Окно не открылось: ', paused: 'пауза', theme: 'Тема', noEvents: 'Событий пока нет',
     objectives: 'Цели', events: 'События', allies: 'союзники', enemies: 'враги', radiant: 'Radiant', dire: 'Dire', kills: 'убийств', nwTotal: 'NW',
     dead: 'мертв', deadIn: 'мертв · {n} с', visible: 'виден', maphack: 'туман · {n} с', lastSeen: 'виден {n} с назад',
+    drinks: 'Газявы',
     tp: 'телепорт · {n} с', buyback: 'Байбек', ready: 'готов', sec: '{n} с', gold: 'Золото', nw: 'NW', kda: 'KDA', lhdn: 'LH/DN',
     roshan: 'Рошан', tormentor: 'Торментор', noData: 'нет данных', bossDead: 'мертв', bossSeen: 'жив', bossHit: 'бьют',
     glyph: 'Глиф', scan: 'Скан', camps: 'Кемпы с крипами',
     econTitle: 'Нетворс', leadTitle: 'Крипы', tblPlayer: 'Игрок', econEmpty: 'Нет данных', leadEmpty: 'Нет данных',
-    layers: { heroes: 'Герои', bars: 'HP и мана под героями', fog: 'Герои в тумане', creeps: 'Линейные крипы', waves: 'Волны крипов в тумане', jungle: 'Лес и кемпы', wards: 'Варды и обзор', buildings: 'Здания', events: 'События на карте', couriers: 'Курьеры', runes: 'Руны', labels: 'Подписи времени в тумане' },
+    share: 'Поделиться', shareCopied: 'Ссылка скопирована',
+    roshWindow: 'респавн {a}–{b}', aegisLeft: 'аегис ~{t}', spawnIn: 'через {t}',
+    alertRoshDead: 'Рошан убит', alertRoshUp: 'Рошан возродился', alertRoshHit: 'Рошана бьют',
+    alertSmokeText: 'Вражеский смоук', alertMissingText: 'Все враги пропали с карты', alertGlyphText: 'Глиф врага откатился',
+    layers: { heroes: 'Герои', bars: 'HP и мана под героями', fog: 'Герои в тумане', creeps: 'Линейные крипы', waves: 'Волны крипов в тумане', jungle: 'Лес и кемпы', wards: 'Варды и обзор', buildings: 'Здания', events: 'События на карте', couriers: 'Курьеры', runes: 'Руны', labels: 'Подписи времени в тумане', trails: 'Трейлы движения', heat: 'Хитмап врагов' },
     heroesTitle: 'Герои', teamShow: 'Показывать героев', compactView: 'Компактный вид', viewMode: 'Вид', viewAll: 'Обе команды', viewAllies: 'Только союзники', viewEnemies: 'Только враги', noHeroes: 'Героев пока нет',
     show: 'Показывать на карте', windows: 'Поверх игры', day: 'День', night: 'Ночь', nsNight: 'Night Stalker', est: 'посчитано с запуска радара',
-    stock: 'В лавке', untilNight: 'ночь через {t}', untilDay: 'день через {t}', scanCharges: 'Заряды скана', dmg: 'Урон по героям', heal: 'Лечение', wardsPlaced: 'Варды', stacks: 'Стаки', xp: 'Опыт',
+    stock: 'В лавке', untilNight: 'ночь через {t}', untilDay: 'день через {t}', scanCharges: 'Заряды скана', dmg: 'Урон по героям', heal: 'Лечение', cycleLabel: 'День/ночь', wardsPlaced: 'Варды', stacks: 'Стаки', xp: 'Опыт',
     attrDmg: 'Урон', attrArm: 'Броня', attrMs: 'Скорость', attrAs: 'Атак в секунду', ult: 'Ультимейт',
     legend: ['виден', 'в тумане', 'последнее место', 'волна в тумане'],
     zone: { mid: 'мид', top: 'верх', bot: 'низ' }, side: { r: 'сторона Radiant', d: 'сторона Dire', c: 'середина' },
@@ -509,7 +524,8 @@ let LANG = localStorage.getItem('cr_lang') || ((navigator.language || '').toLowe
 let TEXT = ALL[LANG];
 const CFG_DEFAULT = {
   layout: { top: ['score'], left: ['objectives', 'economy'], center: ['map'], right: ['heroes', 'leaders'], hidden: [], wl: 320, wr: 380, auto: true, h: {} },
-  layers: { heroes: true, bars: true, fog: true, labels: true, creeps: true, waves: true, jungle: true, wards: true, runes: true, couriers: true, buildings: true, events: true },
+  layers: { heroes: true, bars: true, fog: true, labels: true, creeps: true, waves: true, jungle: true, wards: true, runes: true, couriers: true, buildings: true, events: true, trails: true, heat: false },
+  alerts: { smoke: true, boss: true, missing: true, cool: true, sound: true, notify: false },
   look: { theme: 'dark', density: 'normal', zoom: 100, rad: '#57c785', dire: '#ef6b6b', mapScale: 100, heroScale: 100, legend: true },
   top: { nw: true, heads: true, mana: true, numbers: true, ult: true, clock: true, corner: 'lh' },
   heroes: { view: 'all', order: 'mine', compact: false, name: true, state: true, bars: true, kpis: true, attrs: true, extra: true, items: true, backpack: true, abilities: true },
@@ -601,7 +617,7 @@ const econEl = $('econ'), leadEl = $('lead');
 let openPip = () => {};
 let teamView = cfg.heroes.view;
 const LAYER_KEYS = [['heroes', 'fa-user'], ['bars', 'fa-heart-pulse'], ['fog', 'fa-eye-slash'], ['labels', 'fa-clock'], ['creeps', 'fa-people-group'], ['waves', 'fa-route'], ['jungle', 'fa-tree'],
-  ['wards', 'fa-eye'], ['runes', 'fa-gem'], ['couriers', 'fa-horse'], ['buildings', 'fa-chess-rook'], ['events', 'fa-bolt']];
+  ['wards', 'fa-eye'], ['runes', 'fa-gem'], ['couriers', 'fa-horse'], ['buildings', 'fa-chess-rook'], ['events', 'fa-bolt'], ['trails', 'fa-route'], ['heat', 'fa-fire']];
 const layers = cfg.layers;
 
 let size = 600;
@@ -618,6 +634,7 @@ function applyText() {
   document.documentElement.lang = LANG;
   for (const b of document.querySelectorAll('#lang button')) b.classList.toggle('on', b.dataset.l === LANG);
   $('theme').title = TEXT.theme;
+  $('share').title = TEXT.share;
   $('hObj').textContent = TEXT.objectives;
   $('hEcon').textContent = TEXT.econTitle;
   $('hLead').textContent = TEXT.leadTitle;
@@ -1244,11 +1261,13 @@ function frame() {
   lastFrame = nowMs;
   drawMap();
   drawVision();
+  drawHeat();
   drawCamps();
   drawUnits();
   drawWards();
   drawRunes();
   drawEvents();
+  drawTrails();
   const t = gameTime();
   const ids = Object.keys(heroes).sort((a, b) => (heroes[b].row.f || 0) - (heroes[a].row.f || 0));
   const renderT = clockOffset === null ? null : nowMs / 1000 - clockOffset - Math.min(0.6, Math.max(0.08, sampleGap * 1.6));
@@ -1292,6 +1311,7 @@ function heroCard(entry) {
   if (typeof s.nw === 'number') kpis.push([TEXT.nw, (s.partial ? '≥' : '') + kilo(s.nw)]);
   if (typeof s.lh === 'number') kpis.push([TEXT.lhdn, s.lh + '/' + (s.dn || 0)]);
   if (typeof s.g === 'number') kpis.push([TEXT.gold, String(s.g)]);
+  if (typeof s.drink === 'number') kpis.push([TEXT.drinks, String(s.drink)]);
   if (info.buyback && kpis.length < 4) kpis.push([TEXT.buyback, secs(remaining(info.buyback.ready_at))]);
   const items = list(info.items);
   const bySlot = {};
@@ -1428,16 +1448,18 @@ function renderSide() {
     if ((mine === 2 || mine === 3) && (teamView === 'allies' && team !== mine || teamView === 'enemies' && team === mine)) continue;
     const members = rows.filter(e => e.row.team === team);
     if (!members.length) continue;
-    let kills = 0, nw = 0, partial = false, hasNw = false;
+    let kills = 0, nw = 0, partial = false, hasNw = false, drinks = 0;
     for (const e of members) {
       const s = (e.info || {}).stats || {};
       if (typeof s.k === 'number') kills += s.k;
       if (typeof s.nw === 'number') { nw += s.nw; hasNw = true; partial = partial || !!s.partial; }
+      if (typeof s.drink === 'number') drinks += s.drink;
     }
     const role = mine === 2 || mine === 3 ? (team === mine ? TEXT.allies : TEXT.enemies) : '';
     groups.push('<div class="tgroup"><div class="team-h"><span class="flag" style="background:var(--' + (team === 2 ? 'rad' : 'dire') + ')"></span><h2>' +
       esc(team === 2 ? TEXT.radiant : TEXT.dire) + '</h2><span class="role">' + esc(role) + '</span><span class="sum"><span><b>' + kills + '</b> ' + esc(TEXT.kills) + '</span>' +
-      (hasNw ? '<span>' + esc(TEXT.nwTotal) + ' <b>' + (partial ? '≥' : '') + kilo(nw) + '</b></span>' : '') + '</span></div>' + members.map(heroCard).join('') + '</div>');
+      (hasNw ? '<span>' + esc(TEXT.nwTotal) + ' <b>' + (partial ? '≥' : '') + kilo(nw) + '</b></span>' : '') +
+      (drinks > 0 ? '<span>' + esc(TEXT.drinks) + ' <b>' + drinks + '</b></span>' : '') + '</span></div>' + members.map(heroCard).join('') + '</div>');
   }
   const html = groups.join('');
   teamsEl.classList.toggle('cview', !!cfg.heroes.compact);
@@ -1453,17 +1475,47 @@ function bossState(o) {
   const hp = typeof o.hp === 'number' ? 'HP ' + o.hp + '%' : TEXT.bossSeen;
   return [hp + (o.under_attack ? ' · ' + TEXT.bossHit : ''), o.under_attack ? 'warn' : 'ok'];
 }
+let roshDeathAt = null;
+function roshTimerText(rosh) {
+  if (!rosh || rosh.alive !== false || typeof roshDeathAt !== 'number') return '';
+  const t = gameTime();
+  const aeg = roshDeathAt + 300 - t, a = roshDeathAt + 480 - t, b = roshDeathAt + 660 - t;
+  if (b <= 0.5) return '';
+  const parts = [];
+  if (aeg > 0.5) parts.push(fmt(TEXT.aegisLeft, { t: clockText(aeg) }));
+  if (a > 0.5) parts.push(fmt(TEXT.roshWindow, { a: clockText(a), b: clockText(b) }));
+  return parts.join(' · ');
+}
 function renderObjs() {
   const obj = live.objectives || {};
   const o = cfg.objectives;
   const cells = [];
-  if (o.rosh) { const rosh = bossState(obj.roshan); cells.push(['radar/icons/roshan.png', TEXT.roshan, rosh[0], rosh[1]]); }
+  if (o.rosh) {
+    const rosh = obj.roshan;
+    let txt = bossState(rosh)[0], cls = bossState(rosh)[1];
+    if (rosh && rosh.alive === false) {
+      const extra = roshTimerText(rosh);
+      if (extra) txt = TEXT.bossDead + ' · ' + extra;
+    }
+    cells.push(['radar/icons/roshan.png', TEXT.roshan, txt, cls]);
+  }
   const torms = list(obj.tormentors);
-  if (o.torm && !torms.length) cells.push([TORM_ICON('radiant'), TEXT.tormentor, TEXT.noData, '']);
+  if (o.torm && !torms.length) {
+    const left = 1200 - gameTime();
+    cells.push([TORM_ICON('radiant'), TEXT.tormentor, left > 0.5 ? fmt(TEXT.spawnIn, { t: clockText(left) }) : TEXT.noData, '']);
+  }
   if (o.torm) torms.forEach((t, i) => {
     const st = bossState(t);
     cells.push([TORM_ICON(i === 1 ? 'dire' : 'radiant'), TEXT.tormentor + (torms.length > 1 ? ' ' + (i + 1) : ''), st[0], st[1]]);
   });
+  if (typeof obj.cycle === 'number') {
+    const left = obj.cycle - gameTime();
+    if (left > 0.5 && left < 900) {
+      const night = (live.clock || {}).day === false || (live.clock || {}).ns;
+      cells.push([night ? 'fa-sun' : 'fa-moon', TEXT.cycleLabel,
+        fmt(night ? TEXT.untilDay : TEXT.untilNight, { t: clockText(left) }), '']);
+    }
+  }
   const chip = (team, v, ready) => '<em style="--tc:var(--' + team + ')"' + (ready ? ' class="rdy"' : '') + ' title="' + esc(team === 'rad' ? TEXT.radiant : TEXT.dire) + '">' + esc(v) + '</em>';
   const cdPair = (r, d) => { const a = cdText(r), b = cdText(d); return { html: chip('rad', a, a === TEXT.ready) + chip('dire', b, b === TEXT.ready) }; };
   if (o.glyph) cells.push(['fa-shield-halved', TEXT.glyph, cdPair(obj.glyph_radiant, obj.glyph_dire), '']);
@@ -1520,6 +1572,224 @@ function renderLeaders() {
   const rows = statRows('lh');
   const html = tableHtml(rows, TEXT.lhdn, TEXT.leadEmpty, it => it.s.lh + '<small> / ' + (it.s.dn || 0) + '</small>');
   if (html !== leadHtml) { leadHtml = html; leadEl.innerHTML = html; }
+}
+
+// Trails, heatmap, alerts and the net worth chart.
+const trailMap = new Map();
+const HEAT_N = 20;
+const heat = new Float32Array(HEAT_N * HEAT_N);
+let heatCanvas = null, heatDirty = true, heatAt = 0;
+const nwHist = { t: [], rad: [], dire: [] };
+let nwAt = 0, sparkHtml = '';
+const alertPrev = { roshAlive: null, roshHit: false, smoke: new Set(), missingAt: 0, glyphSide: 0, glyphReady: false };
+
+function localSide() {
+  const t = (live.clock || {}).team;
+  return t === 2 || t === 3 ? t : 0;
+}
+function tickHistory() {
+  const inGame = !!(live.clock || {}).in_game;
+  const now = performance.now();
+  if (!inGame) {
+    if (trailMap.size) trailMap.clear();
+    let hot = false;
+    for (let i = 0; i < heat.length; i++) if (heat[i] > 0) { hot = true; break; }
+    if (hot) { heat.fill(0); heatDirty = true; }
+    if (nwHist.t.length) { nwHist.t.length = 0; nwHist.rad.length = 0; nwHist.dire.length = 0; }
+    nwAt = 0; heatAt = 0;
+    return;
+  }
+  const t = gameTime();
+  for (const e of Object.values(heroes)) {
+    const r = e.row;
+    if (r.f || r.alive === false || typeof r.x !== 'number' || typeof r.y !== 'number') continue;
+    const key = String(r.id);
+    let arr = trailMap.get(key);
+    if (!arr) { arr = []; trailMap.set(key, arr); }
+    const last = arr[arr.length - 1];
+    if (!last || Math.hypot(last.x - r.x, last.y - r.y) > 80 || t - last.t >= 2) {
+      arr.push({ t: t, x: r.x, y: r.y, team: r.team });
+      while (arr.length > 2 && (t - arr[0].t > 90 || arr.length > 60)) arr.shift();
+    }
+  }
+  if (now - heatAt >= 5000) {
+    heatAt = now;
+    for (let i = 0; i < heat.length; i++) heat[i] *= 0.93;
+    const side = localSide();
+    if (side) {
+      const half = MAP_HALF;
+      for (const e of Object.values(heroes)) {
+        const r = e.row;
+        if (r.team === side || r.f || typeof r.x !== 'number' || typeof r.y !== 'number') continue;
+        const gx = Math.floor((r.x + half) / (2 * half) * HEAT_N), gy = Math.floor((r.y + half) / (2 * half) * HEAT_N);
+        if (gx >= 0 && gx < HEAT_N && gy >= 0 && gy < HEAT_N) heat[gy * HEAT_N + gx] += 1;
+      }
+    }
+    heatDirty = true;
+  }
+  if (now - nwAt >= 5000) {
+    nwAt = now;
+    let rad = 0, dire = 0, okR = false, okD = false;
+    for (const e of Object.values(roster)) {
+      const s = (e.info || {}).stats || {};
+      if (typeof s.nw !== 'number') continue;
+      if (e.row.team === 2) { rad += s.nw; okR = true; }
+      else if (e.row.team === 3) { dire += s.nw; okD = true; }
+    }
+    if (okR && okD) {
+      nwHist.t.push(t); nwHist.rad.push(rad); nwHist.dire.push(dire);
+      while (nwHist.t.length > 120) { nwHist.t.shift(); nwHist.rad.shift(); nwHist.dire.shift(); }
+    }
+  }
+}
+function renderHeat() {
+  if (!heatCanvas || heatCanvas.width !== size) { heatCanvas = document.createElement('canvas'); heatCanvas.width = size; heatCanvas.height = size; }
+  const g = heatCanvas.getContext('2d');
+  g.clearRect(0, 0, size, size);
+  let max = 0;
+  for (let i = 0; i < heat.length; i++) if (heat[i] > max) max = heat[i];
+  heatDirty = false;
+  if (max < 1) return;
+  const cell = 2 * MAP_HALF / HEAT_N;
+  for (let y = 0; y < HEAT_N; y++) for (let x = 0; x < HEAT_N; x++) {
+    const wgt = heat[y * HEAT_N + x] / max;
+    if (wgt < 0.12) continue;
+    const [sx, sy] = toScreen(-MAP_HALF + (x + 0.5) * cell, -MAP_HALF + (y + 0.5) * cell);
+    const r = Math.max(8, world(cell) * 1.3);
+    const grd = g.createRadialGradient(sx, sy, 0, sx, sy, r);
+    grd.addColorStop(0, 'rgba(239,107,107,' + (0.3 * wgt).toFixed(3) + ')');
+    grd.addColorStop(1, 'rgba(239,107,107,0)');
+    g.fillStyle = grd;
+    g.beginPath(); g.arc(sx, sy, r, 0, Math.PI * 2); g.fill();
+  }
+}
+function drawHeat() {
+  if (!layers.heat) return;
+  if (heatDirty || !heatCanvas || heatCanvas.width !== size) renderHeat();
+  if (heatCanvas) ctx.drawImage(heatCanvas, 0, 0, size, size);
+}
+function drawTrails() {
+  if (!layers.trails) return;
+  const now = gameTime();
+  ctx.save();
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.lineWidth = Math.max(1, world(90));
+  for (const arr of trailMap.values()) {
+    if (arr.length < 2) continue;
+    let started = false;
+    ctx.beginPath();
+    for (const p of arr) {
+      if (now - p.t > 90) continue;
+      const [x, y] = toScreen(p.x, p.y);
+      if (!started) { ctx.moveTo(x, y); started = true; } else ctx.lineTo(x, y);
+    }
+    if (!started) continue;
+    ctx.strokeStyle = teamColor(arr[arr.length - 1].team, 0.34);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+function renderSpark() {
+  const el = $('spark');
+  if (nwHist.rad.length < 2) { el.classList.add('off'); return; }
+  el.classList.remove('off');
+  const n = nwHist.rad.length;
+  let lo = Infinity, hi = -Infinity;
+  for (let i = 0; i < n; i++) { lo = Math.min(lo, nwHist.rad[i], nwHist.dire[i]); hi = Math.max(hi, nwHist.rad[i], nwHist.dire[i]); }
+  if (hi - lo < 1) hi = lo + 1;
+  const line = arr => arr.map((v, i) => (i / (n - 1) * 100).toFixed(2) + ',' + (28 - (v - lo) / (hi - lo) * 24).toFixed(2)).join(' ');
+  const diff = nwHist.rad[n - 1] - nwHist.dire[n - 1];
+  const html = '<svg viewBox="0 0 100 30" preserveAspectRatio="none">' +
+    '<polyline points="' + line(nwHist.dire) + '" fill="none" style="stroke:var(--dire)" stroke-width="1.6" vector-effect="non-scaling-stroke"/>' +
+    '<polyline points="' + line(nwHist.rad) + '" fill="none" style="stroke:var(--rad)" stroke-width="1.6" vector-effect="non-scaling-stroke"/></svg>' +
+    '<span class="dl" style="color:var(--' + (diff >= 0 ? 'rad' : 'dire') + ')">' + (diff >= 0 ? '+' : '−') + kilo(Math.abs(diff)) + '</span>';
+  if (html !== sparkHtml) { sparkHtml = html; el.innerHTML = html; }
+}
+let audioCtx = null;
+function beep() {
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain(), now = audioCtx.currentTime;
+    o.type = 'sine';
+    o.frequency.value = 880;
+    o.connect(g);
+    g.connect(audioCtx.destination);
+    g.gain.setValueAtTime(0.0001, now);
+    g.gain.exponentialRampToValueAtTime(0.07, now + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + 0.26);
+    o.start(now);
+    o.stop(now + 0.28);
+  } catch (e) {}
+}
+function alertFor(kind, text) {
+  const a = cfg.alerts || {};
+  if (a[kind] === false) return;
+  if (a.sound) beep();
+  toast(text);
+  if (a.notify && 'Notification' in window && Notification.permission === 'granted') {
+    try { new Notification('Cloud Radar', { body: text, tag: 'cr-' + kind }); } catch (e) {}
+  }
+}
+async function askNotify() {
+  if (!('Notification' in window)) { toast(CT.alertDenied); return; }
+  let p = Notification.permission;
+  if (p === 'default') p = await Notification.requestPermission();
+  if (p === 'granted') { cfg.alerts.notify = true; saveCfg(); toast(CT.alertGranted); if (drawer.classList.contains('on')) renderDrawer(); }
+  else toast(CT.alertDenied);
+}
+function tickAlerts() {
+  const clock = live.clock || {};
+  if (!clock.in_game) {
+    alertPrev.roshAlive = null; alertPrev.roshHit = false; alertPrev.smoke.clear();
+    alertPrev.missingAt = 0; alertPrev.glyphSide = 0; alertPrev.glyphReady = false;
+    roshDeathAt = null;
+    return;
+  }
+  const t = gameTime();
+  const obj = live.objectives || {};
+  const rosh = obj.roshan;
+  const alive = rosh ? rosh.alive !== false : null;
+  if (alive === false) {
+    if (alertPrev.roshAlive === true) { roshDeathAt = t; alertFor('boss', TEXT.alertRoshDead); }
+  } else if (alive === true) {
+    if (alertPrev.roshAlive === false) alertFor('boss', TEXT.alertRoshUp);
+    roshDeathAt = null;
+  }
+  if (alive !== null) alertPrev.roshAlive = alive;
+  const hit = !!(rosh && rosh.under_attack);
+  if (hit && !alertPrev.roshHit) alertFor('boss', TEXT.alertRoshHit + (typeof rosh.hp === 'number' ? ' · HP ' + rosh.hp + '%' : ''));
+  alertPrev.roshHit = hit;
+  for (const e of list(live.events)) {
+    if (e.kind !== 'smoke' || e.f) continue;
+    const key = String(e.id);
+    if (alertPrev.smoke.has(key)) continue;
+    alertPrev.smoke.add(key);
+    const side = localSide();
+    if (!side || e.team !== side) alertFor('smoke', TEXT.alertSmokeText + (e.h ? ' · ' + e.h : ''));
+  }
+  if (alertPrev.smoke.size > 400) alertPrev.smoke.clear();
+  const side = localSide();
+  if (side) {
+    const enemies = Object.values(roster).filter(x => (x.row.team === 2 || x.row.team === 3) && x.row.team !== side && x.row.alive !== false);
+    const missing = enemies.length >= 3 && enemies.every(x => x.row.f && typeof x.row.seen === 'number' && t - x.row.seen > 12);
+    if (missing && (!alertPrev.missingAt || performance.now() - alertPrev.missingAt > 45000)) { alertPrev.missingAt = performance.now(); alertFor('missing', TEXT.alertMissingText); }
+  }
+  const gkey = side === 2 ? 'glyph_dire' : side === 3 ? 'glyph_radiant' : null;
+  if (gkey && typeof obj[gkey] === 'number') {
+    if (alertPrev.glyphSide !== side) { alertPrev.glyphSide = side; alertPrev.glyphReady = remaining(obj[gkey]) <= 0.5; }
+    const ready = remaining(obj[gkey]) <= 0.5;
+    if (ready && !alertPrev.glyphReady) alertFor('cool', TEXT.alertGlyphText);
+    alertPrev.glyphReady = ready;
+  }
+}
+function shareLink() {
+  const url = location.href;
+  if (navigator.share) { navigator.share({ title: 'Cloud Radar', url: url }).catch(() => {}); return; }
+  const done = () => toast(TEXT.shareCopied);
+  if (navigator.clipboard) navigator.clipboard.writeText(url).then(done, () => window.prompt(TEXT.share, url));
+  else window.prompt(TEXT.share, url);
 }
 
 function applyLive() {
@@ -1583,7 +1853,7 @@ const CFG_TEXT = {
   en: {
     customize: 'Customize', dragHeight: 'Drag to resize, double-click to reset', title: 'Customize the radar', exportCfg: 'Copy', importCfg: 'Paste', resetCfg: 'Reset', copied: 'Settings copied to the clipboard',
     pastePrompt: 'Paste the settings text', badCfg: 'These settings could not be read', resetAsk: 'Reset all radar settings to the defaults?',
-    tabs: { layout: 'Layout', map: 'Map', top: 'Top bar', heroes: 'Heroes', look: 'Look' },
+    tabs: { layout: 'Layout', map: 'Map', top: 'Top bar', heroes: 'Heroes', alerts: 'Alerts', look: 'Look' },
     panels: { score: 'Top bar', objectives: 'Objectives', economy: 'Net worth', leaders: 'Creep score', map: 'Map', heroes: 'Heroes' },
     slots: { top: 'Top', left: 'Left', center: 'Center', right: 'Right' },
     layoutHint: 'Drag panels between the areas. The eye hides a panel. Drag the edges between columns on the page to change their width.',
@@ -1598,11 +1868,12 @@ const CFG_TEXT = {
     objRows: 'Objectives panel', obj: { rosh: 'Roshan', torm: 'Tormentor', glyph: 'Glyph', scan: 'Scan cooldown', charges: 'Scan charges', camps: 'Camps', stock: 'Shop stock' },
     theme: 'Theme', themeDark: 'Dark', themeLight: 'Light', themeAuto: 'System', density: 'Density', densNormal: 'Normal', densCompact: 'Compact',
     zoom: 'Text and panel size', colors: 'Team colors', radColor: 'Radiant', direColor: 'Dire', colorsReset: 'Default colors', lang: 'Language',
+    alertWhat: 'What to announce', alertSmoke: 'Enemy smoke', alertBoss: 'Roshan events', alertMissing: 'All enemies missing', alertCool: 'Enemy glyph ready', alertSound: 'Sound', alertNotify: 'Browser notifications', alertAsk: 'Allow notifications', alertGranted: 'Notifications allowed', alertDenied: 'Notifications are blocked in the browser settings',
   },
   ru: {
     customize: 'Настроить', dragHeight: 'Потяните, чтобы изменить высоту. Двойной клик сбрасывает', title: 'Настройка радара', exportCfg: 'Копировать', importCfg: 'Вставить', resetCfg: 'Сбросить', copied: 'Настройки скопированы в буфер обмена',
     pastePrompt: 'Вставьте текст настроек', badCfg: 'Не удалось прочитать эти настройки', resetAsk: 'Сбросить все настройки радара?',
-    tabs: { layout: 'Расположение', map: 'Карта', top: 'Верхняя панель', heroes: 'Герои', look: 'Вид' },
+    tabs: { layout: 'Расположение', map: 'Карта', top: 'Верхняя панель', heroes: 'Герои', alerts: 'Алерты', look: 'Вид' },
     panels: { score: 'Верхняя панель', objectives: 'Цели', economy: 'Нетворс', leaders: 'Крипы', map: 'Карта', heroes: 'Герои' },
     slots: { top: 'Сверху', left: 'Слева', center: 'По центру', right: 'Справа' },
     layoutHint: 'Перетаскивайте панели между областями. Глаз скрывает панель. Ширину колонок меняйте, перетаскивая их края на странице.',
@@ -1617,6 +1888,7 @@ const CFG_TEXT = {
     objRows: 'Панель целей', obj: { rosh: 'Рошан', torm: 'Торментор', glyph: 'Глиф', scan: 'Перезарядка скана', charges: 'Заряды скана', camps: 'Кемпы', stock: 'Лавка' },
     theme: 'Тема', themeDark: 'Темная', themeLight: 'Светлая', themeAuto: 'Как в системе', density: 'Плотность', densNormal: 'Обычная', densCompact: 'Компактная',
     zoom: 'Размер текста и панелей', colors: 'Цвета команд', radColor: 'Radiant', direColor: 'Dire', colorsReset: 'Цвета по умолчанию', lang: 'Язык',
+    alertWhat: 'О чём сообщать', alertSmoke: 'Вражеский смоук', alertBoss: 'События Рошана', alertMissing: 'Все враги пропали', alertCool: 'Глиф врага откатился', alertSound: 'Звук', alertNotify: 'Уведомления в браузере', alertAsk: 'Разрешить уведомления', alertGranted: 'Уведомления разрешены', alertDenied: 'Уведомления заблокированы в настройках браузера',
   },
 };
 let CT = CFG_TEXT[LANG];
@@ -1628,6 +1900,11 @@ const PRESETS = {
   stream: { top: [], left: [], center: ['map'], right: ['score', 'economy', 'leaders'], hidden: ['objectives', 'heroes'], wl: 320, wr: 460, auto: true, h: {} },
 };
 let drawerTab = 'layout';
+// Phones: first open starts from the compact preset.
+if (!localStorage.getItem('cr_cfg') && window.matchMedia('(max-width: 760px)').matches) {
+  cfg.layout = Object.assign(JSON.parse(JSON.stringify(PRESETS.stream)), { right: ['score', 'economy', 'leaders', 'objectives'], hidden: ['heroes'] });
+  cfg.heroes.compact = true;
+}
 
 function hexRgb(hex) {
   const m = /^#?([0-9a-f]{6})$/i.exec(hex || '');
@@ -1776,7 +2053,7 @@ function layoutEditor() {
 }
 function renderDrawer() {
   $('drTitle').textContent = CT.title;
-  const tabs = [['layout', 'fa-table-columns'], ['map', 'fa-map'], ['top', 'fa-window-maximize'], ['heroes', 'fa-users'], ['look', 'fa-palette']];
+  const tabs = [['layout', 'fa-table-columns'], ['map', 'fa-map'], ['top', 'fa-window-maximize'], ['heroes', 'fa-users'], ['alerts', 'fa-bell'], ['look', 'fa-palette']];
   $('drTabs').innerHTML = tabs.map(([k, ic]) => '<button type="button" data-tab="' + k + '" class="' + (drawerTab === k ? 'on' : '') + '"><i class="fa-solid ' + ic + '"></i>' + esc(CT.tabs[k]) + '</button>').join('');
   let h = '';
   if (drawerTab === 'layout') {
@@ -1796,6 +2073,10 @@ function renderDrawer() {
       ctlSeg(CT.heroOrder, 'heroes.order', [['mine', CT.orderMine], ['radiant', CT.orderRad]]) + ctlSwitch(TEXT.compactView, 'heroes.compact');
     h += '<h3>' + esc(CT.heroParts) + '</h3>' + [['name', CT.hName], ['state', CT.hState], ['bars', CT.hBars], ['kpis', CT.hKpis], ['attrs', CT.hAttrs], ['extra', CT.hExtra], ['items', CT.hItems], ['backpack', CT.hBackpack], ['abilities', CT.hAbilities]]
       .map(([k, t]) => ctlSwitch(t, 'heroes.' + k)).join('');
+  } else if (drawerTab === 'alerts') {
+    h += '<h3>' + esc(CT.alertWhat) + '</h3>' + [['smoke', CT.alertSmoke], ['boss', CT.alertBoss], ['missing', CT.alertMissing], ['cool', CT.alertCool]].map(([k, t]) => ctlSwitch(t, 'alerts.' + k)).join('');
+    h += '<h3>' + esc(CT.tabs.alerts) + '</h3>' + ctlSwitch(CT.alertSound, 'alerts.sound') + ctlSwitch(CT.alertNotify, 'alerts.notify') +
+      '<div class="row-c clickable" data-notify="1"><span>' + esc(CT.alertAsk) + '</span><i class="fa-solid fa-bell" style="color:var(--faint)"></i></div>';
   } else if (drawerTab === 'look') {
     h += '<h3>' + esc(CT.theme) + '</h3>' + ctlSeg(CT.theme, 'look.theme', [['dark', CT.themeDark], ['light', CT.themeLight], ['auto', CT.themeAuto]]) +
       ctlSeg(CT.density, 'look.density', [['normal', CT.densNormal], ['compact', CT.densCompact]]) + ctlRange(CT.zoom, 'look.zoom', 80, 130, 5, '%') +
@@ -1815,6 +2096,7 @@ function openDrawer(on) {
   if (on) renderDrawer();
 }
 $('custom').onclick = () => openDrawer(!drawer.classList.contains('on'));
+$('share').onclick = shareLink;
 $('drClose').onclick = () => openDrawer(false);
 $('scrim').onclick = () => openDrawer(false);
 document.addEventListener('keydown', ev => { if (ev.key === 'Escape') openDrawer(false); });
@@ -1841,6 +2123,8 @@ $('drBody').onclick = ev => {
     changed();
     return;
   }
+  const nt = ev.target.closest('[data-notify]');
+  if (nt) { askNotify(); return; }
   const hide = ev.target.closest('[data-hide]');
   if (hide) {
     const L = cfg.layout, id = hide.dataset.hide;
@@ -1979,7 +2263,7 @@ if (/^[A-Za-z0-9]{20}$/.test(sessionId)) {
   connected = true;
 }
 refreshStatus();
-setInterval(function () { refreshStatus(); renderSide(); renderObjs(); renderEcon(); renderLeaders(); }, 1000);
+setInterval(function () { refreshStatus(); renderSide(); renderObjs(); renderEcon(); renderLeaders(); tickHistory(); tickAlerts(); renderSpark(); }, 1000);
 
 let rafAt = 0;
 function rafLoop() { rafAt = performance.now(); frame(); requestAnimationFrame(rafLoop); }
