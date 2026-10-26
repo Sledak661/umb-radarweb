@@ -164,6 +164,7 @@ main{flex:1;min-height:0;display:flex;flex-direction:column;gap:12px;padding:12p
 .hc-bars .h b{background:var(--hp)} .hc-bars .m b{background:var(--mp)}
 .hero.hc .st{flex:none;font-size:11px;font-weight:600;color:var(--muted);white-space:nowrap}
 .hero.hc .st.fog{color:var(--warn)} .hero.hc .st.dead{color:var(--bad)} .hero.hc .st.tp{color:var(--blue)}
+.hero.hc .st.dr{display:inline-flex;align-items:center;gap:3px;color:#7cc4ff}
 #teams.cview .team-h{padding:5px 12px}
 #teams.cview .team-h + .hero{border-top:0}
 .mapbtns{display:flex;gap:4px;padding:2px 4px}
@@ -1306,12 +1307,14 @@ function heroCard(entry) {
   else if (r.f) { note = fmt(r.f === 1 ? TEXT.maphack : TEXT.lastSeen, { n: Math.round(Math.max(0, t - (r.seen || t))) }); noteCls = 'fog'; }
   else { note = TEXT.visible; noteCls = 'vis'; }
   const s = info.stats || {};
+  const drinks = drinkTotal(entry);
+  const showDrink = drinks > 0 && drinksVisible(entry);
   const kpis = [];
   if (typeof s.k === 'number') kpis.push([TEXT.kda, s.k + '/' + s.d + (typeof s.a === 'number' ? '/' + s.a : '') + (s.est ? '*' : '')]);
   if (typeof s.nw === 'number') kpis.push([TEXT.nw, (s.partial ? '≥' : '') + kilo(s.nw)]);
   if (typeof s.lh === 'number') kpis.push([TEXT.lhdn, s.lh + '/' + (s.dn || 0)]);
   if (typeof s.g === 'number') kpis.push([TEXT.gold, String(s.g)]);
-  if (typeof s.drink === 'number') kpis.push([TEXT.drinks, String(s.drink)]);
+  if (showDrink) kpis.push([TEXT.drinks, String(drinks)]);
   if (info.buyback && kpis.length < 4) kpis.push([TEXT.buyback, secs(remaining(info.buyback.ready_at))]);
   const items = list(info.items);
   const bySlot = {};
@@ -1344,7 +1347,8 @@ function heroCard(entry) {
       '<div class="hc-ic"><img src="' + esc(heroImg(r.name)) + '" alt="" onerror="this.style.visibility=\'hidden\'"><b>' + esc(r.level || '') + '</b></div>' +
       '<div class="hc-main"><div class="hc-row">' + (row || '<span class="st">' + esc(heroName(r.name)) + '</span>') + '</div>' +
       '<div class="hc-bars"><i class="h"><b style="width:' + (dead ? 0 : pct(r.hp, r.max_hp)) + '%"></b></i>' + (r.max_mana ? '<i class="m"><b style="width:' + (dead ? 0 : pct(r.mana, r.max_mana)) + '%"></b></i>' : '') + '</div></div>' +
-      (noteCls !== 'vis' && note ? '<span class="st ' + noteCls + '">' + esc(note) + '</span>' : '') + '</div>';
+      (noteCls !== 'vis' && note ? '<span class="st ' + noteCls + '">' + esc(note) + '</span>' : '') +
+      (showDrink ? '<span class="st dr" title="' + esc(TEXT.drinks) + '"><i class="fa-solid fa-droplet"></i>' + drinks + '</span>' : '') + '</div>';
   }
   const a = info.attr;
   let attrs = '';
@@ -1453,7 +1457,7 @@ function renderSide() {
       const s = (e.info || {}).stats || {};
       if (typeof s.k === 'number') kills += s.k;
       if (typeof s.nw === 'number') { nw += s.nw; hasNw = true; partial = partial || !!s.partial; }
-      if (typeof s.drink === 'number') drinks += s.drink;
+      if (drinksVisible(e)) drinks += drinkTotal(e);
     }
     const role = mine === 2 || mine === 3 ? (team === mine ? TEXT.allies : TEXT.enemies) : '';
     groups.push('<div class="tgroup"><div class="team-h"><span class="flag" style="background:var(--' + (team === 2 ? 'rad' : 'dire') + ')"></span><h2>' +
@@ -1582,6 +1586,42 @@ let heatCanvas = null, heatDirty = true, heatAt = 0;
 const nwHist = { t: [], rad: [], dire: [] };
 let nwAt = 0, sparkHtml = '';
 const alertPrev = { roshAlive: null, roshHit: false, smoke: new Set(), missingAt: 0, glyphSide: 0, glyphReady: false };
+const drinkSeen = new Map(), drinkLocal = new Map();
+
+function drinksVisible(entry) {
+  const mine = (live.clock || {}).team;
+  return !(mine === 2 || mine === 3) || entry.row.team === mine;
+}
+function drinkTotal(entry) {
+  const s = (entry.info || {}).stats || {};
+  return Math.max(typeof s.drink === 'number' ? s.drink : 0, drinkLocal.get(String(entry.row.id)) || 0);
+}
+// Site-side fallback: same rules as the Lua counter, so drinks appear even
+// before the script is reloaded. A bottle counts only when fully emptied.
+function tickDrinks() {
+  if (!(live.clock || {}).in_game) { drinkSeen.clear(); drinkLocal.clear(); return; }
+  for (const entry of Object.values(roster)) {
+    const items = list((entry.info || {}).items);
+    const key = String(entry.row.id);
+    if (!items.length) { drinkSeen.delete(key); continue; }
+    if (items.some(it => it.o)) continue;
+    let clarity = 0, flask = 0, bottle = 0, hasBottle = false;
+    for (const it of items) {
+      if (it.name === 'item_bottle') { hasBottle = true; bottle = typeof it.charges === 'number' ? it.charges : 0; }
+      else if (it.name === 'item_clarity') clarity += typeof it.charges === 'number' ? it.charges : 1;
+      else if (it.name === 'item_flask') flask += typeof it.charges === 'number' ? it.charges : 1;
+    }
+    const prev = drinkSeen.get(key);
+    if (prev) {
+      let used = 0;
+      if (clarity < prev.clarity) used += prev.clarity - clarity;
+      if (flask < prev.flask) used += prev.flask - flask;
+      if (prev.hasBottle && prev.bottle > 0 && hasBottle && bottle === 0) used += 1;
+      if (used > 0) drinkLocal.set(key, (drinkLocal.get(key) || 0) + used);
+    }
+    drinkSeen.set(key, { clarity: clarity, flask: flask, bottle: bottle, hasBottle: hasBottle });
+  }
+}
 
 function localSide() {
   const t = (live.clock || {}).team;
@@ -2263,7 +2303,7 @@ if (/^[A-Za-z0-9]{20}$/.test(sessionId)) {
   connected = true;
 }
 refreshStatus();
-setInterval(function () { refreshStatus(); renderSide(); renderObjs(); renderEcon(); renderLeaders(); tickHistory(); tickAlerts(); renderSpark(); }, 1000);
+setInterval(function () { refreshStatus(); tickDrinks(); renderSide(); renderObjs(); renderEcon(); renderLeaders(); tickHistory(); tickAlerts(); renderSpark(); }, 1000);
 
 let rafAt = 0;
 function rafLoop() { rafAt = performance.now(); frame(); requestAnimationFrame(rafLoop); }
